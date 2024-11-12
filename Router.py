@@ -29,6 +29,9 @@ class XYRouting(object):
         pass
 
     def next_hop(self, src_node, dest_node, mesh):
+        if dest_node.id >= mesh.n_cols * mesh.n_rows:
+            return "F"
+
         src = src_node.id
         dest = dest_node.id
         src_x, src_y = src % mesh.n_cols, src // mesh.n_cols

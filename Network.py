@@ -1,6 +1,7 @@
 from Topology import Topology, Mesh
 from Router import RouterNode, Link, XYRouting
 from typing import Optional
+import numpy as np
 
 class Network(object):
     topology: Optional[Topology] = None
@@ -74,18 +75,139 @@ class Network(object):
         # Unique the vertexs
         self.cdg_vertexs = list(set(cdg_vertexs))
 
+    def DFS(self, checking_list, reachable_list, matrix = None):
+        if len(checking_list) == 0:
+            return
+
+        cur_link = checking_list.pop(0)
+        reachable_list.append(cur_link)
+        for link in self.cdg_edges:
+            head_link = link[0] # N13_N12  X_N13
+            tail_link = link[1] # N12_N8   N13_N12
+
+            if cur_link != head_link:
+                continue
+            if tail_link.split('_')[1] == head_link.split('_')[0]:
+                continue
+
+            if matrix is not None:
+                cur_node_0 = tail_link.split('_')[0]
+                cur_node_1 = tail_link.split('_')[1]
+                if head_link.split('_')[0] == "X":
+                    matrix[int(cur_node_1[1:])] = min(1, matrix[int(cur_node_1[1:])])
+                if cur_node_0 != "X" and cur_node_1 != "X" :
+                    if matrix[int(cur_node_1[1:])] > matrix[int(cur_node_0[1:])]+1:
+                        matrix[int(cur_node_1[1:])] = matrix[int(cur_node_0[1:])] + 1
+
+
+            checking_list.append(tail_link)
+            reachable_list.append(tail_link)
+
+        self.DFS(checking_list, reachable_list, matrix)
+    
+    def DFS_back(self, checking_list, reachable_list, matrix = None):
+        if len(checking_list) == 0:
+            return
+
+        cur_link = checking_list.pop(0)
+        reachable_list.append(cur_link)
+        for link in self.cdg_edges:
+            head_link = link[0] # N0_N1 N4_N0
+            tail_link = link[1] # N1_X  N0_N1
+
+            if cur_link != tail_link:
+                continue
+            if tail_link.split('_')[1] == head_link.split('_')[0]:
+                continue
+            
+            if matrix is not None:
+                cur_node_0 = head_link.split('_')[0]
+                cur_node_1 = head_link.split('_')[1]
+                if tail_link.split('_')[1] == "X":
+                    matrix[int(cur_node_0[1:])] = min(1, matrix[int(cur_node_0[1:])])
+                if cur_node_0 != "X" and cur_node_1 != "X" :
+                    if matrix[int(cur_node_0[1:])] > matrix[int(cur_node_1[1:])]+1:
+                        matrix[int(cur_node_0[1:])] = matrix[int(cur_node_1[1:])] + 1
+
+            checking_list.append(head_link)
+            reachable_list.append(head_link)
+
+        self.DFS_back(checking_list, reachable_list, matrix)
+
+    def get_Neighbor(self, node):
+        rt = []
+        for link in self.cdg_edges:
+            head_link = link[0] # X_N1 
+            if head_link.split('_')[0] == node:
+                rt.append(head_link)
+        return rt
+
+    def isConnected(self, reachable_list, br = ""):
+
+        dest_nodes = []
+        for rl in reachable_list:
+            dest_node = rl.split('_')[1]
+            dest_nodes.append(dest_node)
+
+        unique = set(list(dest_nodes))
+        return len(unique) == 17
+
+    def calConnected(self, reachable_list, br = ""):
+
+        dest_nodes = []
+        for rl in reachable_list:
+            dest_node = rl.split('_')[1]
+            dest_nodes.append(dest_node)
+
+        unique = set(list(dest_nodes))
+        if "X" in unique:
+            unique.remove("X")
+        return len(unique)
+
+    def calConnected_back(self, reachable_list, br = ""):
+
+        dest_nodes = []
+        for rl in reachable_list:
+            dest_node = rl.split('_')[0]
+            dest_nodes.append(dest_node)
+
+        unique = set(list(dest_nodes))
+        if "X" in unique:
+            unique.remove("X")
+        return len(unique)
+
     def evaluate(self, abstract_node, brs):
         links = self.topology.links
         nodes = self.topology.nodes
         nodes.append(abstract_node)
 
+        InMatrix = np.full(16, 50)
+        OutMatrix = np.full(16, 50)
+
         InR = 0
+        for br in brs:
+            InMatrix[br] = 0
+            checking_list = ["X_N"+str(br)]
+            reachable_list = []
+            self.DFS(checking_list, reachable_list, InMatrix)
+            InR += self.calConnected(reachable_list, br)
+
         OutR = 0
         for br in brs:
-            break
+            OutMatrix[br] = 0
+            checking_list = ["N"+str(br)+"_X"]
+            reachable_list = []
+            self.DFS_back(checking_list, reachable_list, OutMatrix)
+            OutR += self.calConnected_back(reachable_list, br)
+
+        ave_InR = float(InR) / (16 * 4)
+        ave_OutR = float(OutR) / (16 * 4)
+        ave_InD = float(np.sum(InMatrix)) / 16
+        ave_OutD = float(np.sum(OutMatrix)) / 16
+
+        return (ave_InD+ ave_OutD) / (ave_InR+ave_OutR)
 
 
-        
 
 
 
