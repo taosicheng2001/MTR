@@ -11,6 +11,10 @@ class Topology(object):
         self.n_nodes = n_nodes
         nodes = []
         links = []
+    
+    def printLinks(self):
+        for link in self.links:
+            print(link.name)
 
 
 class Mesh(Topology):
@@ -19,8 +23,8 @@ class Mesh(Topology):
 
     def __init__(self, n_nodes, n_cols, n_rows):
         super().__init__(n_nodes)
-        n_cols = n_cols
-        n_rows = n_rows
+        self.n_cols = n_cols
+        self.n_rows = n_rows
         self.gen_nodes()
         self.gen_links()
 
@@ -45,6 +49,17 @@ class Mesh(Topology):
                 if i >= 1 and i < self.n_rows:
                     link = Link(current_node, self.nodes[(i - 1) * self.n_cols + j])
                     self.links.append(link)
+    
+    def add_link(self, new_node, attached_node):
+        new_link = []
+        link = Link(new_node, attached_node);
+        self.links.append(link)
+        new_link.append(link)
+        link = Link(attached_node, new_node);
+        self.links.append(link)
+        new_link.append(link)
+        return new_link
+        
 
 
 

@@ -36,7 +36,7 @@ class XYRouting(object):
 
         if dest_x > src_x:
             return "R"
-        if dest_x < src_y:
+        if dest_x < src_x:
             return "L"
         if dest_y > src_y:
             return "D"
